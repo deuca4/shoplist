@@ -386,6 +386,47 @@ button {
   color: var(--text-main);
 }
 
+/* ── Drag-and-Drop ──────────────────────────────────────────────────────── */
+
+.drag-handle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  padding: 4px 6px 4px 0;
+  cursor: grab;
+  touch-action: none;        /* let JS handle touch events */
+  user-select: none;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Show handle on hover (desktop) or always on touch devices */
+.item-card:hover .drag-handle,
+.item-card.dragging .drag-handle {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  /* Always visible on touch screens */
+  .drag-handle { opacity: 0.45; }
+}
+
+.item-card.dragging {
+  opacity: 0.4;
+  background: var(--bg-card-hover);
+}
+
+.item-card.drag-over {
+  box-shadow: inset 0 2px 0 0 var(--border-active);
+}
+
+/* Ghost clone used for touch dragging */
+.drag-ghost {
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
 /* Edit Item Modal Fields */
 .edit-field-group {
   display: flex;
@@ -481,4 +522,235 @@ button {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* ============================================================
+   MOBILE-FRIENDLY RESPONSIVE STYLES
+   ============================================================ */
+
+/* Fluid base font so everything scales nicely */
+html {
+  font-size: 16px;
+}
+
+/* ---- Breakpoint: tablets & below (≤ 640px) ---- */
+@media (max-width: 640px) {
+
+  /* Container: tighter side padding, no top gap wasted */
+  .app-container {
+    padding: 14px 12px;
+    gap: 14px;
+    /* Reserve space for bottom nav bars / home indicator */
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  /* --- Header --- */
+  .app-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  .logo {
+    font-size: 1.15rem;
+  }
+
+  .header-controls {
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  /* List select grows to fill available header space */
+  .list-select {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+  }
+
+  /* Larger tap targets for icon buttons */
+  .btn-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  /* --- Progress section --- */
+  .progress-info {
+    font-size: 0.75rem;
+  }
+
+  /* --- Add Form --- */
+  .add-main-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Item name input: full width on its own row */
+  #itemNameInput {
+    flex: 1 1 100%;
+    font-size: 1rem;
+    padding: 13px 14px;
+  }
+
+  /* Advanced & Add buttons share the second row */
+  #btnToggleAdvanced,
+  #addForm .btn-primary {
+    flex: 1;
+  }
+
+  /* Advanced options: stack vertically on very small screens */
+  .advanced-options {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .opt-group {
+    flex: 1;
+    gap: 8px;
+  }
+
+  .opt-group label {
+    min-width: 52px;
+  }
+
+  .input-text-sm {
+    flex: 1;
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 9px 12px;
+  }
+
+  /* --- Toolbar --- */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search-box input {
+    font-size: 0.9rem;
+    padding: 10px 12px;
+  }
+
+  /* Toolbar action buttons: evenly spaced row */
+  .toolbar-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .toolbar-actions .btn-outline {
+    flex: 1;
+    text-align: center;
+    padding: 9px 6px;
+    font-size: 0.78rem;
+  }
+
+  /* --- Item cards --- */
+  .item-card {
+    padding: 12px 12px;
+    gap: 8px;
+  }
+
+  /* Bigger checkbox for fingers */
+  .custom-checkbox {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  .item-title {
+    font-size: 0.92rem;
+  }
+
+  .item-meta {
+    font-size: 0.76rem;
+  }
+
+  /* Edit / delete buttons: bigger tap area */
+  .btn-edit,
+  .btn-delete {
+    padding: 6px 10px;
+    font-size: 1.2rem;
+  }
+
+  /* --- Edit Item Modal fields --- */
+  .edit-options-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .edit-options-row .opt-group {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .edit-options-row .input-text-sm {
+    flex: 1;
+    width: auto;
+  }
+
+  /* --- Modals: bottom-sheet on mobile --- */
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    /* Slide up animation */
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+
+  /* Modal footer buttons: full-width stacked */
+  .modal-footer {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .modal-footer .btn-outline,
+  .modal-footer .btn-primary {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+    padding: 12px;
+  }
+
+  /* Larger input in modals */
+  .modal-card .input-text {
+    font-size: 1rem;
+    padding: 13px 14px;
+  }
+}
+
+/* ---- Very small phones (≤ 380px) ---- */
+@media (max-width: 380px) {
+  .app-container {
+    padding: 10px 10px;
+  }
+
+  /* Hide "Advanced" text, keep it a compact icon-like button */
+  #btnToggleAdvanced {
+    flex: 0 0 auto;
+    padding: 10px 12px;
+  }
+
+  .toolbar-actions .btn-outline {
+    font-size: 0.72rem;
+    padding: 8px 4px;
+  }
 }

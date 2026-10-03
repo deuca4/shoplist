@@ -75,14 +75,15 @@ const migrations = [
     `
   },
 
+  // v2 — Drag-and-drop sort order for items
+  {
+    version: 2,
+    description: 'Add sort_order column to items for drag-and-drop ordering',
+    up: `ALTER TABLE items ADD COLUMN sort_order INTEGER DEFAULT 0`
+  },
+
   // -------------------------------------------------------------------------
   // Add future schema changes below this line.
-  // Example:
-  // {
-  //   version: 2,
-  //   description: 'Add tags column to items',
-  //   up: `ALTER TABLE items ADD COLUMN tags TEXT DEFAULT ''`
-  // },
   // -------------------------------------------------------------------------
 ];
 

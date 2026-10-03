@@ -15,7 +15,8 @@ const API = {
   resetList: (listId) => fetch(`/api/lists/${listId}/reset`, { method: 'POST' }).then(r => r.json()),
   importItems: (listId, items) => fetch(`/api/lists/${listId}/import`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) }).then(r => r.json()),
   exportAll: () => fetch('/api/export').then(r => r.json()),
-  importAll: (data) => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json())
+  importAll: (data) => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+  reorderItems: (listId, orderedIds) => fetch(`/api/lists/${listId}/reorder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderedIds }) }).then(r => r.json())
 };
 
 const state = {
@@ -120,7 +121,8 @@ function renderItems() {
     if (priceText) metaParts.push(`Est: ${priceText}`);
 
     return `
-      <div class="item-card ${isChecked ? 'checked' : ''}">
+      <div class="item-card ${isChecked ? 'checked' : ''}" data-id="${item.id}" draggable="true">
+        <div class="drag-handle" title="Drag to reorder">⠿</div>
         <div class="item-left">
           <div class="custom-checkbox ${isChecked ? 'checked' : ''}" onclick="toggleCheck(${item.id}, ${!isChecked})">
             ${isChecked ? '✓' : ''}
@@ -137,6 +139,8 @@ function renderItems() {
       </div>
     `;
   }).join('');
+
+  setupDragAndDrop();
 }
 
 function updateProgress() {
@@ -456,6 +460,153 @@ function openModal(id) {
 function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.style.display = 'none';
+}
+
+// ─── Drag-and-Drop Reordering ────────────────────────────────────────────────
+
+function setupDragAndDrop() {
+  const container = document.getElementById('itemsContainer');
+  if (!container) return;
+
+  let dragSrc = null;        // card being dragged (HTML5)
+  let touchDragCard = null;  // card being dragged (touch)
+  let touchClone = null;     // visual ghost for touch
+  let touchOffsetX = 0;
+  let touchOffsetY = 0;
+  let saveTimer = null;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function getCards() {
+    return [...container.querySelectorAll('.item-card[data-id]')];
+  }
+
+  function cardFromPoint(x, y) {
+    // Temporarily hide clone so elementFromPoint works
+    if (touchClone) touchClone.style.display = 'none';
+    const el = document.elementFromPoint(x, y)?.closest('.item-card[data-id]');
+    if (touchClone) touchClone.style.display = '';
+    return el;
+  }
+
+  function insertAfter(ref, node) {
+    if (ref.nextSibling) ref.parentNode.insertBefore(node, ref.nextSibling);
+    else ref.parentNode.appendChild(node);
+  }
+
+  function saveOrder() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const orderedIds = getCards().map(c => parseInt(c.dataset.id));
+      // Reflect new order in state (no re-render, avoids resetting DOM)
+      const byId = Object.fromEntries(state.items.map(i => [i.id, i]));
+      state.items = orderedIds.map(id => byId[id]).filter(Boolean);
+      API.reorderItems(state.activeListId, orderedIds);
+    }, 300);
+  }
+
+  // ── HTML5 Drag API (desktop) ───────────────────────────────────────────────
+
+  getCards().forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragSrc = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+    });
+
+    card.addEventListener('dragend', () => {
+      dragSrc?.classList.remove('dragging');
+      container.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      dragSrc = null;
+      saveOrder();
+    });
+
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!dragSrc || card === dragSrc) return;
+
+      const rect = card.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      container.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      card.classList.add('drag-over');
+
+      if (e.clientY < midY) {
+        container.insertBefore(dragSrc, card);
+      } else {
+        insertAfter(card, dragSrc);
+      }
+    });
+  });
+
+  // ── Touch / Pointer API (mobile) ───────────────────────────────────────────
+
+  getCards().forEach(card => {
+    const handle = card.querySelector('.drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      touchDragCard = card;
+
+      const rect = card.getBoundingClientRect();
+      touchOffsetX = touch.clientX - rect.left;
+      touchOffsetY = touch.clientY - rect.top;
+
+      // Create floating ghost
+      touchClone = card.cloneNode(true);
+      touchClone.classList.add('drag-ghost');
+      touchClone.style.cssText = `
+        position: fixed;
+        z-index: 9999;
+        width: ${rect.width}px;
+        left: ${rect.left}px;
+        top: ${rect.top}px;
+        pointer-events: none;
+        opacity: 0.85;
+      `;
+      document.body.appendChild(touchClone);
+      card.classList.add('dragging');
+      e.preventDefault();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', e => {
+      if (!touchDragCard || e.touches.length !== 1) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+
+      // Move ghost
+      touchClone.style.left = `${touch.clientX - touchOffsetX}px`;
+      touchClone.style.top  = `${touch.clientY - touchOffsetY}px`;
+
+      // Find target card
+      const target = cardFromPoint(touch.clientX, touch.clientY);
+      if (!target || target === touchDragCard) return;
+
+      const rect = target.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      container.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      target.classList.add('drag-over');
+
+      if (touch.clientY < midY) {
+        container.insertBefore(touchDragCard, target);
+      } else {
+        insertAfter(target, touchDragCard);
+      }
+    }, { passive: false });
+
+    handle.addEventListener('touchend', () => {
+      if (!touchDragCard) return;
+      touchClone?.remove();
+      touchClone = null;
+      touchDragCard.classList.remove('dragging');
+      container.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+      touchDragCard = null;
+      saveOrder();
+    });
+  });
 }
 
 function escapeHtml(str) {

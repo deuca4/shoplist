@@ -189,7 +189,7 @@ app.get('/api/lists/:listId/items', (req, res) => {
       params.push(is_checked === 'true' ? 1 : 0);
     }
 
-    query += ` ORDER BY i.is_checked ASC, c.sort_order ASC, i.id DESC`;
+    query += ` ORDER BY i.is_checked ASC, i.sort_order ASC, c.sort_order ASC, i.id DESC`;
 
     const items = db.prepare(query).all(...params);
     res.json({ success: true, data: items });
@@ -264,6 +264,28 @@ app.post('/api/lists/:listId/items', (req, res) => {
 
     broadcast('ITEM_ADDED', { listId: parseInt(listId), item: newItem });
     res.status(201).json({ success: true, data: newItem });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Reorder items (drag-and-drop persistence)
+app.post('/api/lists/:listId/reorder', (req, res) => {
+  try {
+    const { listId } = req.params;
+    const { orderedIds } = req.body; // array of item IDs in new order
+
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ success: false, error: 'orderedIds must be an array' });
+    }
+
+    const update = db.prepare('UPDATE items SET sort_order = ? WHERE id = ? AND list_id = ?');
+    const reorderAll = db.transaction((ids) => {
+      ids.forEach((id, index) => update.run(index, id, listId));
+    });
+    reorderAll(orderedIds);
+
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
