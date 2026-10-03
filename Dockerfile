@@ -19,7 +19,7 @@ WORKDIR /app
 RUN apk add --no-cache sqlite-libs wget
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=7821
 ENV DATABASE_DIR=/app/data
 ENV DATABASE_PATH=/app/data/shopping.db
 
@@ -35,10 +35,10 @@ RUN mkdir -p /app/data && chown -R node:node /app
 
 USER node
 
-EXPOSE 3000
+EXPOSE 7821
 
 # Health check configuration for Docker & Portainer
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:7821/api/health || exit 1
 
 CMD ["node", "server.js"]

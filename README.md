@@ -52,16 +52,16 @@ services:
     container_name: shoplist
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "7821:7821"
     environment:
-      - PORT=3000
+      - PORT=7821
       - NODE_ENV=production
       - DATABASE_DIR=/app/data
       - DATABASE_PATH=/app/data/shopping.db
     volumes:
       - shoplist_data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7821/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -74,7 +74,7 @@ volumes:
 ```
 
 4. Click **Deploy the stack**
-5. Access at `http://<your-server-ip>:3000` ✅
+5. Access at `http://<your-server-ip>:7821` ✅
 
 ---
 
@@ -115,7 +115,7 @@ npm install
 npm start
 ```
 
-Server available at `http://localhost:3000`
+Server available at `http://localhost:7821`
 
 ---
 
@@ -123,7 +123,7 @@ Server available at `http://localhost:3000`
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `PORT` | `3000` | Port the Express server listens on |
+| `PORT` | `7821` | Port the Express server listens on |
 | `NODE_ENV` | `production` | Node environment |
 | `DATABASE_DIR` | `/app/data` | Directory where SQLite DB file lives |
 | `DATABASE_PATH` | `/app/data/shopping.db` | Full path to the SQLite DB file |

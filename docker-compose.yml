@@ -9,16 +9,16 @@ services:
     container_name: shoplist
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "7821:7821"
     environment:
-      - PORT=3000
+      - PORT=7821
       - NODE_ENV=production
       - DATABASE_DIR=/app/data
       - DATABASE_PATH=/app/data/shopping.db
     volumes:
       - shoplist_data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7821/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
