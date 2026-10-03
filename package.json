@@ -1,0 +1,25 @@
+{
+  "name": "shoplist-server",
+  "version": "1.0.0",
+  "description": "Self-hosted shopping list local server with SQLite and Docker support for Portainer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "shopping-list",
+    "self-hosted",
+    "docker",
+    "portainer",
+    "sqlite",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

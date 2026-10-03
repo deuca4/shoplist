@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ShopList - Minimal Shopping List</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-text">ShopList</span>
+      </div>
+
+      <div class="header-controls">
+        <select id="activeListSelect" class="list-select" aria-label="Select List">
+          <!-- Populated dynamically -->
+        </select>
+        <button id="btnNewList" class="btn-icon" title="New List">+</button>
+        <button id="btnThemeToggle" class="btn-icon" title="Toggle Mode">◐</button>
+        <button id="btnOpenMenu" class="btn-icon" title="Options">⚙</button>
+      </div>
+    </header>
+
+    <!-- Progress Summary -->
+    <section class="progress-section">
+      <div class="progress-info">
+        <span id="progressSummary">0 OF 0 ITEMS CHECKED</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+      </div>
+    </section>
+
+    <!-- Single Add Input with Collapsible Advanced Options -->
+    <form id="addForm" class="add-form">
+      <div class="add-main-row">
+        <input 
+          type="text" 
+          id="itemNameInput" 
+          class="input-text" 
+          placeholder="Add item..." 
+          autocomplete="off" 
+          required
+        >
+        <button type="button" id="btnToggleAdvanced" class="btn-outline" title="Advanced Options">+ Advanced</button>
+        <button type="submit" class="btn-primary">Add</button>
+      </div>
+
+      <div id="advancedOptions" class="advanced-options" style="display: none;">
+        <div class="opt-group">
+          <label for="itemQtyInput">QTY</label>
+          <input type="number" id="itemQtyInput" class="input-text-sm" value="1" min="1" step="1">
+        </div>
+        <div class="opt-group">
+          <label for="itemUnitInput">UNIT</label>
+          <input type="text" id="itemUnitInput" class="input-text-sm" placeholder="pcs, kg">
+        </div>
+        <div class="opt-group">
+          <label for="itemPriceInput">PRICE ($)</label>
+          <input type="number" id="itemPriceInput" class="input-text-sm" placeholder="0.00" min="0" step="0.01">
+        </div>
+      </div>
+    </form>
+
+    <!-- Toolbar: Search & Actions -->
+    <section class="toolbar">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search..." autocomplete="off">
+      </div>
+
+      <div class="toolbar-actions">
+        <button id="btnResetChecked" class="btn-outline" title="Uncheck all items">Reset</button>
+        <button id="btnClearCompleted" class="btn-outline" title="Remove checked items">Clear Done</button>
+        <button id="btnExportList" class="btn-outline" title="Export">Export</button>
+      </div>
+    </section>
+
+    <!-- Item List -->
+    <section class="items-list" id="itemsContainer">
+      <!-- Dynamic Item Cards -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        List is empty
+      </div>
+    </section>
+  </div>
+
+  <!-- Create List Modal -->
+  <div class="modal-backdrop" id="listModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>Create List</span>
+        <button class="modal-close" id="btnCloseListModal">✕</button>
+      </div>
+      <form id="listForm">
+        <input type="text" id="listNameInput" class="input-text" placeholder="List Name" required style="width: 100%; margin-bottom: 16px;">
+        <div class="modal-footer">
+          <button type="button" class="btn-outline" id="btnCancelListModal">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Export & Import Modal -->
+  <div class="modal-backdrop" id="exportModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-tabs">
+          <button type="button" class="tab-btn active" id="tabExportBtn">Export</button>
+          <button type="button" class="tab-btn" id="tabImportBtn">Import</button>
+        </div>
+        <button class="modal-close" id="btnCloseExportModal">✕</button>
+      </div>
+
+      <div id="exportTabContent">
+        <div style="display: flex; gap: 16px; margin-top: 10px; margin-bottom: 10px; font-size: 0.85rem; font-weight: 600;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" name="exportScope" value="current" checked> Current List
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" name="exportScope" value="all"> All Lists (Full Backup)
+          </label>
+        </div>
+        <textarea id="exportPreview" class="input-text" rows="8" readonly style="width: 100%; font-family: monospace; font-size: 0.82rem;"></textarea>
+        <div class="modal-footer" style="margin-top: 12px;">
+          <button class="btn-primary" id="btnCopyFormatted">Copy Text</button>
+          <button class="btn-outline" id="btnDownloadJSON">Download JSON</button>
+        </div>
+      </div>
+
+      <div id="importTabContent" style="display: none;">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; margin-bottom: 8px;">
+          Paste JSON array or plain text lines to restore items:
+        </p>
+        <textarea id="importInput" class="input-text" rows="8" placeholder='[{"name": "Milk", "quantity": 1}] or paste item lines...' style="width: 100%; font-family: monospace; font-size: 0.82rem;"></textarea>
+        <div class="modal-footer" style="margin-top: 12px;">
+          <button class="btn-primary" id="btnSubmitImport">Import Items</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Item Modal -->
+  <div class="modal-backdrop" id="editItemModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>Edit Item</span>
+        <button class="modal-close" id="btnCloseEditModal">✕</button>
+      </div>
+      <form id="editItemForm">
+        <input type="hidden" id="editItemId">
+        <div class="edit-field-group">
+          <label for="editItemName">ITEM NAME</label>
+          <input type="text" id="editItemName" class="input-text" placeholder="Item name" required>
+        </div>
+        <div class="edit-options-row">
+          <div class="opt-group">
+            <label for="editItemQty">QTY</label>
+            <input type="number" id="editItemQty" class="input-text-sm" value="1" min="1" step="1">
+          </div>
+          <div class="opt-group">
+            <label for="editItemUnit">UNIT</label>
+            <input type="text" id="editItemUnit" class="input-text-sm" placeholder="pcs, kg">
+          </div>
+          <div class="opt-group">
+            <label for="editItemPrice">PRICE ($)</label>
+            <input type="number" id="editItemPrice" class="input-text-sm" placeholder="0.00" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 4px;">
+          <button type="button" class="btn-outline" id="btnCancelEditModal">Cancel</button>
+          <button type="submit" class="btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Options Menu Modal -->
+  <div class="modal-backdrop" id="menuModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>Settings & Lists</span>
+        <button class="modal-close" id="btnCloseMenuModal">✕</button>
+      </div>
+      <div id="listManagerContainer">
+        <!-- Dynamic lists -->
+      </div>
+      <button id="btnCreateListFromMenu" class="btn-outline" style="width: 100%; margin-top: 12px;">+ New List</button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
