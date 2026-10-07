@@ -328,11 +328,20 @@ function initEventListeners() {
 
   // Actions
   document.getElementById('btnClearCompleted')?.addEventListener('click', async () => {
-    if (!state.activeListId) return;
-    const doneCount = state.items.filter(i => i.is_checked === 1).length;
-    if (!doneCount || !confirm(`Remove ${doneCount} checked item(s)?`)) return;
-    await API.clearCompleted(state.activeListId);
+    const listId = state.activeListId;
+    if (!listId) return;
+    const cleared = state.items.filter(i => i.is_checked === 1);
+    if (!cleared.length) return;
+
+    await API.clearCompleted(listId);
     refresh();
+
+    // The server deletes the rows, so undo re-adds this copy through the
+    // import endpoint (same name/qty/unit/price/notes; new ids).
+    showUndo(`Cleared ${cleared.length} item(s)`, async () => {
+      await API.importItems(listId, cleared);
+      refresh();
+    });
   });
 
   document.getElementById('btnResetChecked')?.addEventListener('click', async () => {
@@ -541,6 +550,24 @@ function initEventListeners() {
 
     alert('Import failed. Please check the backup data format.');
   });
+}
+
+// Bottom bar with an Undo button that disappears after 6 seconds.
+let undoTimer = null;
+function showUndo(message, onUndo) {
+  document.getElementById('undoText').textContent = message;
+  document.getElementById('btnUndo').onclick = () => {
+    hideUndo();
+    onUndo();
+  };
+  document.getElementById('undoToast').hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 6000);
+}
+
+function hideUndo() {
+  clearTimeout(undoTimer);
+  document.getElementById('undoToast').hidden = true;
 }
 
 function openModal(id) {
