@@ -57,11 +57,11 @@
       <div id="advancedOptions" class="advanced-options" style="display: none;">
         <div class="opt-group">
           <label for="itemQtyInput">QTY</label>
-          <input type="number" id="itemQtyInput" class="input-text-sm" value="1" min="1" step="1">
+          <input type="number" id="itemQtyInput" class="input-text-sm" value="1" min="0" step="any">
         </div>
         <div class="opt-group">
           <label for="itemUnitInput">UNIT</label>
-          <input type="text" id="itemUnitInput" class="input-text-sm" placeholder="pcs, kg">
+          <select id="itemUnitInput" class="input-text-sm"></select>
         </div>
         <div class="opt-group">
           <label for="itemPriceInput">PRICE ($)</label>
@@ -161,11 +161,11 @@
         <div class="edit-options-row">
           <div class="opt-group">
             <label for="editItemQty">QTY</label>
-            <input type="number" id="editItemQty" class="input-text-sm" value="1" min="1" step="1">
+            <input type="number" id="editItemQty" class="input-text-sm" value="1" min="0" step="any">
           </div>
           <div class="opt-group">
             <label for="editItemUnit">UNIT</label>
-            <input type="text" id="editItemUnit" class="input-text-sm" placeholder="pcs, kg">
+            <select id="editItemUnit" class="input-text-sm"></select>
           </div>
           <div class="opt-group">
             <label for="editItemPrice">PRICE ($)</label>

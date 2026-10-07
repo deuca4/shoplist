@@ -31,7 +31,32 @@ const state = {
 
 document.documentElement.setAttribute('data-theme', state.theme);
 
+// US units for the Unit dropdowns (add form + edit modal). '' = no unit.
+const UNITS = {
+  'Count': ['pcs', 'pack', 'box', 'bag', 'bottle', 'can', 'jar', 'carton', 'dozen', 'bunch', 'loaf'],
+  'Weight': ['oz', 'lb'],
+  'Liquid': ['fl oz', 'cup', 'pt', 'qt', 'gal']
+};
+
+function fillUnitSelect(select) {
+  if (!select) return;
+  select.innerHTML = '<option value="">—</option>' + Object.entries(UNITS).map(([group, units]) =>
+    `<optgroup label="${group}">${units.map(u => `<option value="${u}">${u}</option>`).join('')}</optgroup>`
+  ).join('');
+}
+
+// Select a unit, adding it as an option first if it isn't in UNITS
+// (items saved before the dropdown existed may have e.g. "tubs").
+function setUnitSelect(select, unit) {
+  if (unit && ![...select.options].some(o => o.value === unit)) {
+    select.add(new Option(unit, unit));
+  }
+  select.value = unit || '';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  fillUnitSelect(document.getElementById('itemUnitInput'));
+  fillUnitSelect(document.getElementById('editItemUnit'));
   initEventListeners();
   setupSSE();
   await loadLists();
@@ -249,7 +274,7 @@ function openEditModal(itemId) {
   document.getElementById('editItemId').value = item.id;
   document.getElementById('editItemName').value = item.name;
   document.getElementById('editItemQty').value = item.quantity || 1;
-  document.getElementById('editItemUnit').value = item.unit || '';
+  setUnitSelect(document.getElementById('editItemUnit'), item.unit);
   document.getElementById('editItemPrice').value = item.estimated_price || '';
 
   openModal('editItemModal');
@@ -284,7 +309,7 @@ function initEventListeners() {
     const name = input.value.trim();
     if (!name || !state.activeListId) return;
 
-    const qty = parseInt(document.getElementById('itemQtyInput')?.value) || 1;
+    const qty = parseFloat(document.getElementById('itemQtyInput')?.value) || 1;
     const unit = document.getElementById('itemUnitInput')?.value?.trim() || '';
     const price = parseFloat(document.getElementById('itemPriceInput')?.value) || 0;
 
@@ -327,7 +352,7 @@ function initEventListeners() {
     e.preventDefault();
     const id = parseInt(document.getElementById('editItemId').value);
     const name = document.getElementById('editItemName').value.trim();
-    const quantity = parseInt(document.getElementById('editItemQty').value) || 1;
+    const quantity = parseFloat(document.getElementById('editItemQty').value) || 1;
     const unit = document.getElementById('editItemUnit').value.trim();
     const estimated_price = parseFloat(document.getElementById('editItemPrice').value) || 0;
 
