@@ -3,6 +3,8 @@
 const API = {
   getLists: () => fetch('/api/lists').then(r => r.json()),
   createList: (data) => fetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+  updateList: (id, data) => fetch(`/api/lists/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+  deleteList: (id) => fetch(`/api/lists/${id}`, { method: 'DELETE' }).then(r => r.json()),
 
   getItems: (listId, query = {}) => {
     const params = new URLSearchParams(query);
@@ -76,6 +78,7 @@ async function loadLists(switchActive = true) {
   if (res.success) {
     state.lists = res.data;
     renderListSelector();
+    renderListManager();
 
     if (switchActive && state.lists.length > 0) {
       const savedListId = parseInt(localStorage.getItem('shoplist_active_list'));
@@ -104,6 +107,44 @@ function setActiveList(listId) {
   if (select) select.value = listId;
 
   loadItems(listId);
+}
+
+// Settings modal: one row per list with rename / delete
+function renderListManager() {
+  const container = document.getElementById('listManagerContainer');
+  if (!container) return;
+
+  container.innerHTML = `<div class="items-list">${state.lists.map(l => `
+    <div class="item-card">
+      <div class="item-title">${escapeHtml(l.name)}</div>
+      <div class="item-actions">
+        <button class="btn-edit" onclick="renameList(${l.id})" title="Rename">✎</button>
+        <button class="btn-delete" onclick="deleteList(${l.id})" title="Delete">✕</button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+async function renameList(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  const name = prompt('Rename list', list?.name || '')?.trim();
+  if (!name) return;
+
+  await API.updateList(listId, { name });
+  loadLists(false);
+}
+
+async function deleteList(listId) {
+  if (state.lists.length <= 1) {
+    alert('You need at least one list.');
+    return;
+  }
+  const list = state.lists.find(l => l.id === listId);
+  if (!confirm(`Delete "${list?.name}"?`)) return;
+
+  // Server archives the list (rows stay in the DB) rather than deleting it.
+  await API.deleteList(listId);
+  loadLists(); // switches to another list if the active one was deleted
 }
 
 function renderListSelector() {
@@ -291,6 +332,10 @@ function initEventListeners() {
   // Modals
   document.getElementById('btnNewList')?.addEventListener('click', () => openModal('listModal'));
   document.getElementById('btnOpenMenu')?.addEventListener('click', () => openModal('menuModal'));
+  document.getElementById('btnCreateListFromMenu')?.addEventListener('click', () => {
+    closeModal('menuModal');
+    openModal('listModal');
+  });
 
   document.getElementById('listForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
