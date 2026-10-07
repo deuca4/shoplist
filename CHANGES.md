@@ -21,6 +21,7 @@ untouched; existing data works as is.
 | 9 | Undo for Clear Done | index.html, app.js, styles.css | 6-second Undo bar instead of a confirm box |
 | 10 | Create List "Cancel" button | app.js | Cancel closes the dialog (it did nothing) |
 | 11 | Share-friendly export text | index.html, app.js | To buy / Done / All, qty, prices; Copy works on phones |
+| 12 | Share icons, remembered options | index.html, app.js, styles.css | One tap to WhatsApp / Messages / Email; options stick per phone |
 
 ---
 
@@ -201,6 +202,34 @@ when "All Lists (Full Backup)" is selected.
   on its own.
 
 All the logic is in `formatListText()` and `copyText()` in `app.js`.
+
+## 12. Share icons and remembered options (`86bee94`)
+
+**Why:** Copy → switch app → paste is three steps. The system Share button
+from #11 only appears on HTTPS, so on the home http setup there was no
+one-tap way to send the list.
+
+**What:**
+- A row of icons under the preview:
+  - **WhatsApp** opens `https://wa.me/?text=…` (the WhatsApp app on a phone,
+    WhatsApp Web on a computer) with the text filled in; you pick the chat.
+  - **Messages** opens `sms:?&body=…` (iMessage/SMS; the `?&` form works on both
+    iPhone and Android).
+  - **Email** opens `mailto:?subject=<list title>&body=…`.
+  - **Share** (system share sheet, from #11) moved into this row as an icon.
+    Still HTTPS-only.
+
+  These are ordinary links, so they work over plain http. Their addresses are
+  rebuilt whenever the text changes. **Discord has no share link**, so for
+  Discord it's still Copy Text + paste.
+- Icons are inline SVG (WhatsApp glyph from Simple Icons, CC0; the others
+  Feather-style, MIT): no extra files or requests. They reuse `.btn-icon`; one
+  new CSS rule, `.btn-icon[hidden] { display: none }`, because `.btn-icon`'s
+  `display: flex` would otherwise override `hidden`.
+- **Options are remembered on each phone** (To buy/Done/All, Qty, Prices), in
+  `localStorage` under `shoplist_export_options`. First-time default is
+  **To buy + Qty**. If storage is unavailable (private browsing) it simply uses
+  that default.
 
 ---
 
