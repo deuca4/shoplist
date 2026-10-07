@@ -1,12 +1,10 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 7821;
 
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,8 +24,7 @@ app.get('/api/events', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*'
+    'Connection': 'keep-alive'
   });
 
   const clientId = Date.now();
