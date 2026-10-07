@@ -406,19 +406,53 @@ function initEventListeners() {
   const updateExportContent = async () => {
     const scope = document.querySelector('input[name="exportScope"]:checked')?.value || 'current';
     document.getElementById('exportTextOptions').style.display = scope === 'all' ? 'none' : 'flex';
+    document.getElementById('exportShareIcons').style.display = scope === 'all' ? 'none' : 'flex';
     if (scope === 'all') {
       const res = await API.exportAll();
       if (res.success) {
         document.getElementById('exportPreview').value = JSON.stringify(res.data, null, 2);
       }
     } else {
-      document.getElementById('exportPreview').value = formatListText({
+      const text = formatListText({
         show: document.querySelector('input[name="exportShow"]:checked')?.value || 'todo',
         qty: document.getElementById('exportQty').checked,
         prices: document.getElementById('exportPrices').checked
       });
+      document.getElementById('exportPreview').value = text;
+
+      // Plain links, so these work over http too (unlike navigator.share).
+      // Discord has no share link; use Copy Text there.
+      const t = encodeURIComponent(text);
+      document.getElementById('shareWhatsApp').href = `https://wa.me/?text=${t}`;
+      document.getElementById('shareSms').href = `sms:?&body=${t}`; // "?&" works on both iOS and Android
+      document.getElementById('shareEmail').href = `mailto:?subject=${encodeURIComponent(text.split('\n')[0])}&body=${t}`;
     }
   };
+
+  // Remember the share options per device. Defaults (in index.html): To buy + Qty.
+  try {
+    const saved = JSON.parse(localStorage.getItem('shoplist_export_options'));
+    if (saved) {
+      const radio = document.querySelector(`input[name="exportShow"][value="${saved.show}"]`);
+      if (radio) radio.checked = true;
+      document.getElementById('exportQty').checked = !!saved.qty;
+      document.getElementById('exportPrices').checked = !!saved.prices;
+    }
+  } catch (e) { /* no storage (e.g. private mode): keep defaults */ }
+
+  const saveExportOptions = () => {
+    try {
+      localStorage.setItem('shoplist_export_options', JSON.stringify({
+        show: document.querySelector('input[name="exportShow"]:checked')?.value,
+        qty: document.getElementById('exportQty').checked,
+        prices: document.getElementById('exportPrices').checked
+      }));
+    } catch (e) { /* ignore */ }
+  };
+
+  document.querySelectorAll('input[name="exportShow"], #exportQty, #exportPrices').forEach(r => {
+    r.addEventListener('change', saveExportOptions);
+  });
 
   document.querySelectorAll('input[name="exportScope"], input[name="exportShow"], #exportQty, #exportPrices').forEach(r => {
     r.addEventListener('change', updateExportContent);
