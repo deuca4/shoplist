@@ -13,6 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Server-Sent Events (SSE) active clients registry
 let sseClients = [];
+let nextClientId = 1;
 
 function broadcast(eventType, data = {}) {
   const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -27,7 +28,7 @@ app.get('/api/events', (req, res) => {
     'Connection': 'keep-alive'
   });
 
-  const clientId = Date.now();
+  const clientId = nextClientId++; // Date.now() collided when two devices connected in the same ms
   const newClient = { id: clientId, res };
   sseClients.push(newClient);
 
@@ -281,6 +282,7 @@ app.post('/api/lists/:listId/reorder', (req, res) => {
       ids.forEach((id, index) => update.run(index, id, listId));
     });
     reorderAll(orderedIds);
+    broadcast('ITEMS_REORDERED', { listId: parseInt(listId) });
 
     res.json({ success: true });
   } catch (err) {

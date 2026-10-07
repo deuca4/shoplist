@@ -42,15 +42,33 @@ function setupSSE() {
   evtSource.addEventListener('ITEM_DELETED', (e) => handleSSEUpdate(e));
   evtSource.addEventListener('LIST_CLEARED', (e) => handleSSEUpdate(e));
   evtSource.addEventListener('LIST_RESET', (e) => handleSSEUpdate(e));
+  evtSource.addEventListener('ITEMS_REORDERED', (e) => handleSSEUpdate(e));
   evtSource.addEventListener('LIST_CREATED', () => loadLists());
+  evtSource.addEventListener('LIST_UPDATED', () => loadLists());
+  evtSource.addEventListener('LIST_DELETED', () => loadLists());
+
+  // Events sent while the phone slept or the VPN dropped are lost, so
+  // re-fetch whenever the stream (re)connects or the tab comes back.
+  evtSource.addEventListener('open', () => refresh());
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh();
+  });
 }
 
 function handleSSEUpdate(e) {
   const data = JSON.parse(e.data);
-  if (data.listId === state.activeListId) {
+  if (data.listId === state.activeListId) refresh();
+}
+
+// Reload items + list counts. Debounced so an action on this device and
+// the SSE echo of that same action cause one reload, not two.
+let refreshTimer = null;
+function refresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => {
     loadItems(state.activeListId, false);
     loadLists(false);
-  }
+  }, 150);
 }
 
 async function loadLists(switchActive = true) {
@@ -164,7 +182,7 @@ async function toggleCheck(itemId, isChecked) {
   updateProgress();
 
   await API.updateItem(itemId, { is_checked: isChecked });
-  loadLists(false);
+  refresh();
 }
 
 async function deleteItem(itemId) {
@@ -173,7 +191,7 @@ async function deleteItem(itemId) {
   updateProgress();
 
   await API.deleteItem(itemId);
-  loadLists(false);
+  refresh();
 }
 
 function openEditModal(itemId) {
@@ -226,8 +244,7 @@ function initEventListeners() {
     if (document.getElementById('itemPriceInput')) document.getElementById('itemPriceInput').value = '';
 
     await API.addItem(state.activeListId, { name, quantity: qty, unit, estimated_price: price });
-    loadItems(state.activeListId, false);
-    loadLists(false);
+    refresh();
   });
 
   // Search
@@ -240,15 +257,13 @@ function initEventListeners() {
   document.getElementById('btnClearCompleted')?.addEventListener('click', async () => {
     if (!state.activeListId) return;
     await API.clearCompleted(state.activeListId);
-    loadItems(state.activeListId, false);
-    loadLists(false);
+    refresh();
   });
 
   document.getElementById('btnResetChecked')?.addEventListener('click', async () => {
     if (!state.activeListId) return;
     await API.resetList(state.activeListId);
-    loadItems(state.activeListId, false);
-    loadLists(false);
+    refresh();
   });
 
   // Edit Item Modal
@@ -270,8 +285,7 @@ function initEventListeners() {
 
     closeModal('editItemModal');
     await API.updateItem(id, { name, quantity, unit, estimated_price });
-    loadItems(state.activeListId, false);
-    loadLists(false);
+    refresh();
   });
 
   // Modals
@@ -409,8 +423,7 @@ function initEventListeners() {
           alert(`Successfully imported ${res.count || res.itemsImported} items!`);
           document.getElementById('importInput').value = '';
           closeModal('exportModal');
-          loadItems(state.activeListId, false);
-          loadLists(false);
+          refresh();
           return;
         }
       }
@@ -441,8 +454,7 @@ function initEventListeners() {
           alert(`Successfully imported ${res.count || res.itemsImported} items!`);
           document.getElementById('importInput').value = '';
           closeModal('exportModal');
-          loadItems(state.activeListId, false);
-          loadLists(false);
+          refresh();
           return;
         }
       }
