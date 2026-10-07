@@ -126,8 +126,27 @@
             <input type="radio" name="exportScope" value="all"> All Lists (Full Backup)
           </label>
         </div>
+        <!-- Text options for sharing the current list (hidden for full backup) -->
+        <div id="exportTextOptions" style="display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 10px; font-size: 0.85rem; font-weight: 600;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" name="exportShow" value="todo" checked> To buy
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" name="exportShow" value="done"> Done
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="radio" name="exportShow" value="all"> All
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="checkbox" id="exportQty" checked> Qty
+          </label>
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="checkbox" id="exportPrices"> Prices
+          </label>
+        </div>
         <textarea id="exportPreview" class="input-text" rows="8" readonly style="width: 100%; font-family: monospace; font-size: 0.82rem;"></textarea>
         <div class="modal-footer" style="margin-top: 12px;">
+          <button class="btn-outline" id="btnShareText" hidden>Share</button>
           <button class="btn-primary" id="btnCopyFormatted">Copy Text</button>
           <button class="btn-outline" id="btnDownloadJSON">Download JSON</button>
         </div>
