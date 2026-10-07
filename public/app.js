@@ -297,6 +297,8 @@ function initEventListeners() {
   // Actions
   document.getElementById('btnClearCompleted')?.addEventListener('click', async () => {
     if (!state.activeListId) return;
+    const doneCount = state.items.filter(i => i.is_checked === 1).length;
+    if (!doneCount || !confirm(`Remove ${doneCount} checked item(s)?`)) return;
     await API.clearCompleted(state.activeListId);
     refresh();
   });
