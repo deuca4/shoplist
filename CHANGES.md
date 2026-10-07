@@ -2,10 +2,11 @@
 
 Small fixes for the real use case: two phones sharing lists on the home LAN,
 reached from outside over Tailscale/WireGuard. No new dependencies, no schema
-changes, no new CSS, no rewrites. Each change is its own commit, so any of them
-can be reverted or skipped on its own.
+changes, no rewrites. The only new CSS is the Undo bar. Each change is its own
+commit, so any of them can be reverted or skipped on its own.
 
-**8 files, +103 / −68 lines.** The database is untouched; existing data works as is.
+**9 code files, +195 / −77 lines** (not counting this file). The database is
+untouched; existing data works as is.
 
 | # | Commit | Files | What you'd notice |
 |---|--------|-------|-------------------|
@@ -16,6 +17,8 @@ can be reverted or skipped on its own.
 | 5 | Confirm "Clear Done" | app.js | No accidental wipe in the store |
 | 6 | Search on the device | app.js, index.html | Instant search; export/progress no longer affected by search |
 | 7 | Export fixes | server.js | Restoring a backup no longer revives deleted lists |
+| 8 | US unit dropdown, decimal qty | index.html, app.js | Pick lb / gal / dozen…; 1.5 lb works |
+| 9 | Undo for Clear Done | index.html, app.js, styles.css | 6-second Undo bar instead of a confirm box |
 
 ---
 
@@ -81,6 +84,7 @@ so the data stays in the DB. "+ New List" opens the existing Create List dialog.
 "Reset". One mis-tap in the store and the list is gone.
 
 **What:** `confirm("Remove N checked item(s)?")`; does nothing if none are checked.
+*(Superseded by #9: the confirm box was replaced with an Undo bar.)*
 
 ## 6. Search on the device (`45f958f`)
 
@@ -110,6 +114,44 @@ matching items: the progress bar, "Export → Current List", and "Download JSON"
 
 **What:** Export only `is_archived = 0` lists; dropped the always-empty
 `category` field. Categories aren't used anywhere in the UI, so nothing is lost.
+
+## 8. US unit dropdown, decimal quantities (`492b51d`)
+
+**Why:** Unit was a free-text box with a "pcs, kg" placeholder. A US household
+wants lb, oz, gal, qt etc. one tap away, and quantity only accepted whole
+numbers, so 1.5 lb or 0.5 gal couldn't be entered.
+
+**What:**
+- Unit is now a `<select>` in both the add form and the edit dialog:
+  - **—** (no unit, the default)
+  - **Count:** pcs, pack, box, bag, bottle, can, jar, carton, dozen, bunch, loaf
+  - **Weight:** oz, lb
+  - **Liquid:** fl oz, cup, pt, qt, gal
+- The choices live in one `UNITS` constant at the top of `app.js`; edit that to
+  add or remove units.
+- Older items whose unit isn't in the list (e.g. the sample "tubs") still show
+  and save correctly: the edit dialog adds that unit as an extra option instead
+  of blanking it.
+- Quantity inputs take decimals (`step="any"`, `parseFloat`). The DB column was
+  already `REAL`.
+
+## 9. Undo for "Clear Done" (`fed3a09`)
+
+**Why:** A confirm box on every clear is friction; an undo is the usual pattern
+and also covers "I tapped OK too fast".
+
+**What:**
+- After Clear Done, a bar at the bottom shows "Cleared N item(s) **Undo**" for
+  6 seconds.
+- **No server change.** Clear Done still deletes the rows. Before that, the app
+  keeps a copy of the checked items, and Undo sends it to the existing
+  `POST /api/lists/:id/import` endpoint. Name, quantity, unit, price, notes,
+  priority and checked state come back; the rows get new ids. The other phone
+  sees the removal and then the re-add through the normal live updates.
+- Undo lives in memory on the phone that cleared. Reloading the page, or
+  clearing again within 6 seconds, drops the earlier undo.
+- New: `#undoToast` in `index.html`, `.undo-toast` in `styles.css` (uses the
+  existing colour variables, so it follows dark/light mode).
 
 ---
 
@@ -142,3 +184,10 @@ Built the Docker image from this branch and ran it on a fresh volume:
   - An item added by "another device" (a direct API call) appears within 0.6s,
     with exactly one reload; the app's own add also triggers exactly one reload.
   - `visibilitychange` triggers a refresh.
+  - Unit dropdown shows the three groups and defaults to "—". Adding "Chicken"
+    at 1.5 lb saves and displays as "Qty: 1.5 lb". Editing the sample "tubs"
+    item keeps "tubs". Changing milk to 0.5 gal saves.
+  - Clear Done on 2 checked items shows "Cleared 2 item(s)" and removes them.
+    Undo restores both with the same qty, unit and price. Without Undo, the bar
+    hides after 6s and the items stay cleared. With nothing checked, no bar.
+    Checked at 390px phone width: the bar sits on one line at the bottom.
