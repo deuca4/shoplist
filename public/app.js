@@ -91,7 +91,7 @@ async function loadLists(switchActive = true) {
 async function loadItems(listId, showLoading = true) {
   if (!listId) return;
 
-  const res = await API.getItems(listId, { search: state.searchQuery });
+  const res = await API.getItems(listId);
   if (res.success) {
     state.items = res.data;
     renderItems();
@@ -160,19 +160,26 @@ function renderListSelector() {
 
 function renderItems() {
   const container = document.getElementById('itemsContainer');
-  const emptyState = document.getElementById('emptyState');
   if (!container) return;
 
-  if (state.items.length === 0) {
-    container.innerHTML = '';
-    if (emptyState) {
-      container.appendChild(emptyState);
-      emptyState.style.display = 'block';
-    }
+  // Search filters locally; state.items always holds the whole list.
+  const query = state.searchQuery.toLowerCase();
+  const visible = query
+    ? state.items.filter(i => i.name.toLowerCase().includes(query))
+    : state.items;
+
+  if (visible.length === 0) {
+    // Rendered here, not toggled on a static node: the innerHTML below
+    // would destroy that node (the old #emptyState never reappeared).
+    container.innerHTML = `<div class="empty-state">${query ? 'No matches' : 'List is empty'}</div>`;
     return;
   }
 
-  container.innerHTML = state.items.map(item => {
+  // Reordering a filtered view would drop the hidden items' positions,
+  // so drag-and-drop is only offered when not searching.
+  const canDrag = !query;
+
+  container.innerHTML = visible.map(item => {
     const isChecked = item.is_checked === 1;
     const priceText = item.estimated_price > 0 ? `$${(item.estimated_price * item.quantity).toFixed(2)}` : '';
     const metaParts = [];
@@ -180,8 +187,8 @@ function renderItems() {
     if (priceText) metaParts.push(`Est: ${priceText}`);
 
     return `
-      <div class="item-card ${isChecked ? 'checked' : ''}" data-id="${item.id}" draggable="true">
-        <div class="drag-handle" title="Drag to reorder">⠿</div>
+      <div class="item-card ${isChecked ? 'checked' : ''}" data-id="${item.id}" draggable="${canDrag}">
+        ${canDrag ? '<div class="drag-handle" title="Drag to reorder">⠿</div>' : ''}
         <div class="item-left">
           <div class="custom-checkbox ${isChecked ? 'checked' : ''}" onclick="toggleCheck(${item.id}, ${!isChecked})">
             ${isChecked ? '✓' : ''}
@@ -291,7 +298,7 @@ function initEventListeners() {
   // Search
   document.getElementById('searchInput')?.addEventListener('input', (e) => {
     state.searchQuery = e.target.value.trim();
-    loadItems(state.activeListId, false);
+    renderItems();
   });
 
   // Actions
